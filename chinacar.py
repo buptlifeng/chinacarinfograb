@@ -20,7 +20,7 @@ def loadkeys(fileName,outFile):
             if row is None:
                 f1.write(key + ';\n')
             else:
-                f1.write(key + ';' + row.encode('utf-8') + ';\n')
+                f1.write(row.encode('utf-8') + ';\n')
             f1.flush()
             print line,'complete file ',curNo
             curNo = curNo + 1
@@ -113,10 +113,21 @@ def parseHtml(text):
     divs = soup.select('.pro_title')
     if divs is None:
         return
+    all_rows_text = ''
     for div in divs:
         attr = div.select_one('a')
         href = attr['href']
-        return httpGet(href)
+        #look for the key word  record
+        red_key = div.select_one('em')
+        if red_key:
+            cur_text = httpGet(href)
+            key_word = red_key.string
+            if cur_text:
+                if all_rows_text:
+                    all_rows_text = key_word + ';' + cur_text
+                else:
+                    all_rows_text = all_rows_text + '\n' + key_word + ';' + cur_text
+    return all_rows_text
 
 def load_file_by_argv(argv):
     files = args[1]
