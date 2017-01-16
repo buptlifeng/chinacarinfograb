@@ -17,12 +17,12 @@ def loadkeys(fileName,outFile):
         if len(line) > 0:
             key = line.strip('\n').strip('\r').strip(';')
             row = httpGetSearch(key)
-            if row is None:
+            if row is None or len(row) == 0:
                 f1.write(key + ';\n')
             else:
-                f1.write(row.encode('utf-8') + ';\n')
+                f1.write(row.encode('utf-8') + '\n')
             f1.flush()
-            print line,'complete file ',curNo
+            print line,'complete file',curNo
             curNo = curNo + 1
             seconds = random.randint(2,6)
             time.sleep(seconds)
@@ -79,6 +79,8 @@ def httpGet(url):
                 div = soup.select_one('#p_dhArrCon_1')
             if div is None:
                 div = soup.select_one('.p_dhArrCon_1')
+            if div is None:
+                div = soup.select_one('.parameter_box_s')
             if div:
                 table = div.select_one('table')
                 return parseTable(table)
@@ -90,6 +92,8 @@ def parseTable(table):
     if rows is None:
         return
     res = ''
+    key_word = ''
+    is_read_type = 0
     for row in rows:
         first_span = row.select_one('span')
         if first_span:
@@ -99,11 +103,16 @@ def parseTable(table):
                 desc = unicode(row.string)
             else:
                 desc = unicode('')            
+        if is_read_type == 1:
+            key_word = desc
+            is_read_type += 1
+        if desc.startswith(u'公告型号'):
+            is_read_type += 1
         if desc is None:
             res += ';'
         else:
             res += desc + ';' 
-    return res
+    return key_word + ';' +res
 
 #the result html returned by sousuo.html
 def parseHtml(text):
@@ -121,28 +130,25 @@ def parseHtml(text):
         red_key = div.select_one('em')
         if red_key:
             cur_text = httpGet(href)
-            key_word = red_key.string
             if cur_text:
-                if all_rows_text:
-                    all_rows_text = key_word + ';' + cur_text
-                else:
-                    all_rows_text = all_rows_text + '\n' + key_word + ';' + cur_text
+                all_rows_text = all_rows_text + '\n' + cur_text
     return all_rows_text
 
 def load_file_by_argv(argv):
-    files = args[1]
+    files = argv[1]
     if files is None:
         print 'error with input file name,inst:','1.log,2.log',' use comma , to seprate files'
         return
     print 'output file name is:out_yourInputFileName,such as:out_1.log,out_2.log'
+    print files
     return files.split(',')
 
 if __name__ == "__main__":
     wait_read_files = load_file_by_argv(sys.argv)
-    if wait_read_files is None:
+    if wait_read_files:
     	for fileName in wait_read_files:
         	print 'ready to load file:',fileName
         	out_file = 'out_' + fileName
         	loadkeys(fileName,out_file)
-        	print 'finish ',fileName,' reading,returned information in file:',out_file
-        	time.sleep(6)
+        	print 'finish',fileName,'reading,returned information in file:',out_file
+        	time.sleep(4)
